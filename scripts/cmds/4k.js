@@ -1,12 +1,11 @@
-const axios = require('axios');
+const a = require('axios');
 const tinyurl = require('tinyurl');
-
 module.exports = {
   config: {
     name: "4k",
-    aliases: ["4k", "enchance"],
+    aliases: ["4k", "upscale"],
     version: "1.0",
-    author: "JARiF",
+    author: "JARiF", //edit Aesther
     countDown: 15,
     role: 0,
     longDescription: "Upscale your image.",
@@ -17,34 +16,41 @@ module.exports = {
   },
 
   onStart: async function ({ message, args, event, api }) {
-    const getImageUrl = () => {
-      if (event.type === "message_reply") {
-        const replyAttachment = event.messageReply.attachments[0];
-        if (["photo", "sticker"].includes(replyAttachment?.type)) {
-          return replyAttachment.url;
-        } else {
-          throw new Error("┐⁠(⁠￣⁠ヘ⁠￣⁠)⁠┌ | Must reply to an image.");
-        }
-      } else if (args[0]?.match(/(https?:\/\/.*\.(?:png|jpg|jpeg))/g) || null) {
-        return args[0];
+    let imageUrl;
+
+    if (event.type === "message_reply") {
+      const replyAttachment = event.messageReply.attachments[0];
+
+      if (["photo", "sticker"].includes(replyAttachment?.type)) {
+        imageUrl = replyAttachment.url;
       } else {
-        throw new Error("(⁠┌⁠・⁠。⁠・⁠)⁠┌ | Reply to an image.");
+        return api.sendMessage(
+          { body: "❌ | Reply must be an image." },
+          event.threadID
+        );
       }
-    };
+    } else if (args[0]?.match(/(https?:\/\/.*\.(?:png|jpg|jpeg))/g)) {
+      imageUrl = args[0];
+    } else {
+      return api.sendMessage(
+        { body: "❌ | Reply to an image." },
+        event.threadID
+      );
+    }
 
     try {
-      const imageUrl = await getImageUrl();
-      const shortUrl = await tinyurl.shorten(imageUrl);
+      const url = await tinyurl.shorten(imageUrl);
+      const response = await a.get(`https://www.api.vyturex.com/upscale?imageUrl=${url}`);
 
-      message.reply("ƪ⁠(⁠‾⁠.⁠‾⁠“⁠)⁠┐ | Please wait...");
+      message.reply("🔹𝗪𝗔𝗜𝗧.....");
 
-      const response = await axios.get(`https://www.api.vyturex.com/upscale?imageUrl=${shortUrl}`);
       const resultUrl = response.data.resultUrl;
 
-      message.reply({ body: "<⁠(⁠￣⁠︶⁠￣⁠)⁠> | Image Enhanced.", attachment: await global.utils.getStreamFromURL(resultUrl) });
+      const imageData = await global.utils.getStreamFromURL(resultUrl);
+
+      message.reply({ body: "✅ | [𝟰𝗞].", attachment: imageData });
     } catch (error) {
-      message.reply("┐⁠(⁠￣⁠ヘ⁠￣⁠)⁠┌ | Error: " + error.message);
-      // Log error for debugging: console.error(error);
+      message.reply("❌ | Error: " + error.message);
     }
   }
 };
